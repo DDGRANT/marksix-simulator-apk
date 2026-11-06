@@ -32,8 +32,25 @@ jobs:
           npx cap add android
           npx cap sync android
 
-      - name: Build APK with Gradle
+          # 自动注入 Gradle 依赖对齐规则，彻底解决 Kotlin 类重复冲突
+          cat << 'EOF' >> android/app/build.gradle
+
+          configurations.all {
+              resolutionStrategy {
+                  eachDependency { DependencyResolveDetails details ->
+                      if (details.requested.group == 'org.jetbrains.kotlin') {
+                          if (details.requested.name == 'kotlin-stdlib-jdk7' || details.requested.name == 'kotlin-stdlib-jdk8') {
+                              details.useTarget("org.jetbrains.kotlin:kotlin-stdlib:${details.requested.version}")
+                          }
+                      }
+                  }
+              }
+          }
+          EOF
+
+      - name: Accept Licenses & Build APK
         run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
