@@ -2,1404 +2,756 @@
 <html lang="zh-HK">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>香港六合彩概率期望值計算器 & 虛擬模擬器 | Mark Six Calculator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>六合彩概率期望計算器與模擬器</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
     body {
-      font-family: 'Noto Sans TC', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+      padding-top: var(--safe-top);
+      padding-bottom: var(--safe-bottom);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
-    /* Official HKJC Mark Six Ball Colors */
-    .ball-red {
-      background: radial-gradient(circle at 30% 30%, #ff6b6b, #c92a2a);
-      box-shadow: 0 4px 8px rgba(201, 42, 42, 0.35), inset 0 -2px 4px rgba(0,0,0,0.25);
+    .ball {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 9999px;
+      font-weight: 700;
+      box-shadow: inset -2px -2px 5px rgba(0,0,0,0.3), inset 2px 2px 4px rgba(255,255,255,0.6), 0 2px 4px rgba(0,0,0,0.2);
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      user-select: none;
     }
-    .ball-blue {
-      background: radial-gradient(circle at 30% 30%, #4dabf7, #1864ab);
-      box-shadow: 0 4px 8px rgba(24, 100, 171, 0.35), inset 0 -2px 4px rgba(0,0,0,0.25);
-    }
-    .ball-green {
-      background: radial-gradient(circle at 30% 30%, #51cf66, #2b8a3e);
-      box-shadow: 0 4px 8px rgba(43, 138, 62, 0.35), inset 0 -2px 4px rgba(0,0,0,0.25);
-    }
+    .ball-red { background: radial-gradient(circle at 35% 35%, #ff6b6b, #c92a2a); color: white; }
+    .ball-blue { background: radial-gradient(circle at 35% 35%, #4dabf7, #1864ab); color: white; }
+    .ball-green { background: radial-gradient(circle at 35% 35%, #51cf66, #2b8a3e); color: white; }
+    
     .ball-selected {
-      outline: 3px solid #f59e0b !important;
-      outline-offset: 2px !important;
-      transform: scale(1.08) !important;
-      box-shadow: 0 0 12px rgba(245, 158, 11, 0.8) !important;
+      transform: scale(1.08);
+      outline: 3px solid #f59e0b;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.7);
     }
     .ball-matched-main {
-      outline: 2.5px solid #22c55e !important;
-      outline-offset: 2px;
-      box-shadow: 0 0 10px rgba(34, 197, 94, 0.7) !important;
-      transform: scale(1.06);
+      outline: 3px solid #10b981 !important;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.8) !important;
     }
     .ball-matched-special {
-      outline: 2.5px solid #f59e0b !important;
-      outline-offset: 2px;
+      outline: 3px solid #f59e0b !important;
       box-shadow: 0 0 12px rgba(245, 158, 11, 0.9) !important;
-      transform: scale(1.08);
       position: relative;
     }
     .tier-card-active {
       border-color: #ef4444 !important;
-      background-color: #fef2f2 !important;
-      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25) !important;
+      background-color: #fff1f2 !important;
+      box-shadow: 0 0 0 2px #f43f5e !important;
     }
-    .tier-card-interactive {
-      cursor: pointer;
-      transition: all 0.2s ease;
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
     }
-    .tier-card-interactive:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
-    }
-    /* Custom scrollbar for tickets */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
+    .custom-scrollbar::-webkit-scrollbar-track {
       background: #f1f5f9;
-      border-radius: 4px;
     }
-    ::-webkit-scrollbar-thumb {
+    .custom-scrollbar::-webkit-scrollbar-thumb {
       background: #cbd5e1;
       border-radius: 4px;
     }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
-    }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+<body class="bg-slate-50 text-slate-800 min-h-screen">
 
-  <!-- Header & Navigation -->
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <div class="flex -space-x-1.5 items-center">
-          <span class="w-6 h-6 rounded-full ball-red inline-flex items-center justify-center text-[10px] font-bold text-white shadow">6</span>
-          <span class="w-6 h-6 rounded-full ball-blue inline-flex items-center justify-center text-[10px] font-bold text-white shadow">18</span>
-          <span class="w-6 h-6 rounded-full ball-green inline-flex items-center justify-center text-[10px] font-bold text-white shadow">49</span>
-        </div>
-        <div>
-          <h1 class="text-lg sm:text-xl font-bold tracking-tight text-slate-900" data-i18n="app_title">香港六合彩 概率期望值與模擬器</h1>
-        </div>
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-5xl mx-auto px-3 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <span class="ball ball-red w-8 h-8 text-sm">六</span>
+        <h1 class="text-base sm:text-lg font-bold text-slate-900" id="t-title">六合彩概率期望與模擬器</h1>
       </div>
-
-      <div class="flex items-center space-x-3">
-        <!-- Language Switcher -->
-        <div class="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-100 text-xs font-medium">
-          <button id="lang-tc" onclick="setLanguage('tc')" class="px-2.5 py-1 rounded-md transition-colors bg-white text-slate-900 shadow-sm font-semibold">繁體</button>
-          <button id="lang-sc" onclick="setLanguage('sc')" class="px-2.5 py-1 rounded-md transition-colors text-slate-600 hover:text-slate-900">简体</button>
-        </div>
+      <div class="flex items-center space-x-2">
+        <button id="lang-btn" onclick="toggleLang()" class="text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 bg-slate-100 hover:bg-slate-200 font-medium">
+          繁體 / 简体
+        </button>
       </div>
-    </div>
-
-    <!-- Mode Tabs -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-100 flex space-x-8">
-      <button onclick="switchTab('calculator')" id="tab-calculator" class="py-3 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 border-red-600 text-red-600 transition-colors">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-        <span data-i18n="tab_calculator">概率與期望值計算</span>
-      </button>
-      <button onclick="switchTab('simulator')" id="tab-simulator" class="py-3 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        <span data-i18n="tab_simulator">虛擬開獎模擬器</span>
-      </button>
     </div>
   </header>
 
-  <!-- Main Content Container -->
-  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+  <main class="max-w-5xl mx-auto px-2 sm:px-4 py-4 space-x-0 space-y-4">
 
-    <!-- ==================== TAB 1: CALCULATOR ==================== -->
-    <div id="section-calculator" class="space-y-6">
-      <!-- Top banner reminder -->
-      <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg shadow-sm">
-        <div class="flex items-start">
-          <svg class="w-5 h-5 text-amber-500 mt-0.5 mr-2.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
-          <p class="text-xs sm:text-sm text-amber-900 leading-relaxed" data-i18n="math_disclaimer">
-            六合彩總組合數為 C(49,6) = 13,983,816 種。單注中頭獎概率約為 1/1400萬。本工具運用嚴格概率論模型計算各獎項中獎率與數學期望值（EV），助您從理性統計視角認清彩票本質。
-          </p>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <!-- Input Form (Left 5 Cols) -->
-        <div class="lg:col-span-5 space-y-5">
-          <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
-            <h2 class="text-base font-bold text-slate-900 flex items-center space-x-2">
-              <span class="w-2 h-5 bg-red-600 rounded-full inline-block"></span>
-              <span data-i18n="params_title">參數設定與獎池配置</span>
-            </h2>
-
-            <!-- Number of bets -->
-            <div>
-              <div class="flex justify-between items-center mb-1">
-                <label class="block text-xs font-semibold text-slate-700" data-i18n="label_bets">購買注數 (每注 HK$10)</label>
-                <span id="display-cost" class="text-xs font-bold text-red-600">總成本: HK$ 10</span>
-              </div>
-              <div class="relative">
-                <input type="number" id="input-bets" min="1" max="1000000" value="1" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-sm focus:ring-2 focus:ring-red-500 focus:outline-none transition" oninput="calculateEV()">
-              </div>
-              <div class="flex flex-wrap gap-1.5 mt-2">
-                <button type="button" onclick="setBets(1)" class="px-2.5 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition font-medium">1注</button>
-                <button type="button" onclick="setBets(5)" class="px-2.5 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition font-medium">5注</button>
-                <button type="button" onclick="setBets(10)" class="px-2.5 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition font-medium">10注</button>
-                <button type="button" onclick="setBets(50)" class="px-2.5 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition font-medium">50注</button>
-                <button type="button" onclick="setBets(100)" class="px-2.5 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition font-medium">100注</button>
-              </div>
-            </div>
-
-            <!-- Pool Preset Buttons -->
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1.5" data-i18n="label_presets">常見獎池預設 (金多寶/普通期)</label>
-              <div class="grid grid-cols-2 gap-2 text-xs">
-                <button onclick="applyPreset(8000000, 1500000, 50000)" class="p-2 border border-slate-200 rounded-xl hover:border-red-400 hover:bg-red-50/50 text-left transition">
-                  <div class="font-bold text-slate-800" data-i18n="preset_regular">普通期基準</div>
-                  <div class="text-slate-500 text-[11px]">頭獎約 800萬</div>
-                </button>
-                <button onclick="applyPreset(30000000, 3000000, 80000)" class="p-2 border border-slate-200 rounded-xl hover:border-red-400 hover:bg-red-50/50 text-left transition">
-                  <div class="font-bold text-slate-800" data-i18n="preset_30m">小型金多寶</div>
-                  <div class="text-slate-500 text-[11px]">頭獎約 3000萬</div>
-                </button>
-                <button onclick="applyPreset(80000000, 5000000, 120000)" class="p-2 border border-slate-200 rounded-xl hover:border-red-400 hover:bg-red-50/50 text-left transition">
-                  <div class="font-bold text-slate-800" data-i18n="preset_80m">中秋/新春金多寶</div>
-                  <div class="text-slate-500 text-[11px]">頭獎約 8000萬</div>
-                </button>
-                <button onclick="applyPreset(150000000, 10000000, 200000)" class="p-2 border border-slate-200 rounded-xl hover:border-red-400 hover:bg-red-50/50 text-left transition">
-                  <div class="font-bold text-slate-800" data-i18n="preset_150m">超級金多寶累積</div>
-                  <div class="text-slate-500 text-[11px]">頭獎約 1.5億</div>
-                </button>
-              </div>
-            </div>
-
-            <!-- Custom Prize Inputs -->
-            <div class="space-y-3 pt-2 border-t border-slate-100 text-xs">
-              <div class="flex items-center justify-between text-slate-700 font-semibold">
-                <span data-i18n="prize_distribution">各獎項預估單注派彩 (HK$)</span>
-              </div>
-              <div class="grid grid-cols-1 gap-2.5">
-                <div class="flex items-center justify-between">
-                  <span class="text-slate-600 font-medium" data-i18n="tier_1">頭獎 (6正碼)</span>
-                  <input type="number" id="p-tier-1" value="8000000" class="w-36 px-2.5 py-1.5 text-right bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-1 focus:ring-red-500" oninput="calculateEV()">
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-slate-600 font-medium" data-i18n="tier_2">二獎 (5正+1特)</span>
-                  <input type="number" id="p-tier-2" value="1500000" class="w-36 px-2.5 py-1.5 text-right bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-1 focus:ring-red-500" oninput="calculateEV()">
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-slate-600 font-medium" data-i18n="tier_3">三獎 (5正碼)</span>
-                  <input type="number" id="p-tier-3" value="50000" class="w-36 px-2.5 py-1.5 text-right bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-1 focus:ring-red-500" oninput="calculateEV()">
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-slate-600 font-medium" data-i18n="tier_4">四獎 (4正+1特, 固定)</span>
-                  <input type="number" id="p-tier-4" value="9600" class="w-36 px-2.5 py-1.5 text-right bg-slate-100 border border-slate-200 rounded-lg text-slate-500" readonly>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-slate-600 font-medium" data-i18n="tier_5">五獎 (4正碼, 固定)</span>
-                  <input type="number" id="p-tier-5" value="640" class="w-36 px-2.5 py-1.5 text-right bg-slate-100 border border-slate-200 rounded-lg text-slate-500" readonly>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-slate-600 font-medium" data-i18n="tier_6">六獎 (3正+1特, 固定)</span>
-                  <input type="number" id="p-tier-6" value="320" class="w-36 px-2.5 py-1.5 text-right bg-slate-100 border border-slate-200 rounded-lg text-slate-500" readonly>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-slate-600 font-medium" data-i18n="tier_7">七獎 (3正碼, 固定)</span>
-                  <input type="number" id="p-tier-7" value="40" class="w-36 px-2.5 py-1.5 text-right bg-slate-100 border border-slate-200 rounded-lg text-slate-500" readonly>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Output Cards & Analysis (Right 7 Cols) -->
-        <div class="lg:col-span-7 space-y-5">
-          <!-- Summary Metrics Cards -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-              <div class="text-[11px] font-medium text-slate-500" data-i18n="stat_total_cost">總投注金額</div>
-              <div id="stat-cost" class="text-base sm:text-lg font-bold text-slate-900 mt-1">HK$ 10</div>
-            </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-              <div class="text-[11px] font-medium text-slate-500" data-i18n="stat_expected_return">預期毛回報 (EV)</div>
-              <div id="stat-ev-gross" class="text-base sm:text-lg font-bold text-slate-900 mt-1">HK$ 5.40</div>
-            </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-              <div class="text-[11px] font-medium text-slate-500" data-i18n="stat_net_ev">預期淨虧損/收益</div>
-              <div id="stat-ev-net" class="text-base sm:text-lg font-bold text-red-600 mt-1">-HK$ 4.60</div>
-            </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-              <div class="text-[11px] font-medium text-slate-500" data-i18n="stat_roi">預期回報率 (ROI)</div>
-              <div id="stat-roi" class="text-base sm:text-lg font-bold text-red-600 mt-1">-46.0%</div>
-            </div>
-          </div>
-
-          <!-- Cumulative Probability Overview Card -->
-          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3" data-i18n="prob_summary_title">綜合中獎概率指標</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <span class="text-xs text-slate-500 block mb-1" data-i18n="prob_any_prize_single">單注任意中獎率</span>
-                <span id="prob-single-any" class="text-base font-bold text-slate-800">1.86%</span>
-                <span class="text-[11px] text-slate-400 block mt-0.5">約每 54 注中一次</span>
-              </div>
-              <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <span class="text-xs text-slate-500 block mb-1" data-i18n="prob_any_prize_total">本期至少中獎一次概率</span>
-                <span id="prob-total-any" class="text-base font-bold text-indigo-600">1.86%</span>
-                <span class="text-[11px] text-slate-400 block mt-0.5" id="prob-total-any-fraction">1 - (1-P)^N</span>
-              </div>
-              <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <span class="text-xs text-slate-500 block mb-1" data-i18n="prob_jackpot_total">本期命中頭獎概率</span>
-                <span id="prob-jackpot-total" class="text-base font-bold text-amber-600">0.00000715%</span>
-                <span class="text-[11px] text-slate-400 block mt-0.5" id="prob-jackpot-odds">1 / 13,983,816</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Probability Breakdown Table -->
-          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 class="text-sm font-bold text-slate-900" data-i18n="table_breakdown_title">各獎級組合數、中獎率與期望值分解</h3>
-              <span class="text-xs text-slate-400" data-i18n="table_note">以每注HK$10計算</span>
-            </div>
-            <div class="overflow-x-auto">
-              <table class="w-full text-xs text-left">
-                <thead class="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
-                  <tr>
-                    <th class="py-2.5 px-3" data-i18n="th_tier">獎項</th>
-                    <th class="py-2.5 px-3" data-i18n="th_matches">條件</th>
-                    <th class="py-2.5 px-3 text-right" data-i18n="th_combos">獲獎組合數</th>
-                    <th class="py-2.5 px-3 text-right" data-i18n="th_odds">單注中獎概率</th>
-                    <th class="py-2.5 px-3 text-right" data-i18n="th_prize">派彩</th>
-                    <th class="py-2.5 px-3 text-right" data-i18n="th_ev">單注期望貢獻</th>
-                  </tr>
-                </thead>
-                <tbody id="calculator-table-body" class="divide-y divide-slate-100">
-                  <!-- Dynamically Rendered -->
-                </tbody>
-                <tfoot class="bg-slate-50 font-bold border-t border-slate-200 text-slate-800">
-                  <tr>
-                    <td colspan="2" class="py-2.5 px-3" data-i18n="tfoot_total">合計 (單注)</td>
-                    <td class="py-2.5 px-3 text-right" id="tf-combos">260,374</td>
-                    <td class="py-2.5 px-3 text-right" id="tf-prob">1.8619%</td>
-                    <td class="py-2.5 px-3 text-right">-</td>
-                    <td class="py-2.5 px-3 text-right text-emerald-600" id="tf-ev">HK$ 5.40</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-
-          <!-- Mathematical Truth Box -->
-          <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-slate-200 p-5 rounded-2xl shadow-md text-xs space-y-2">
-            <h4 class="font-bold text-white text-sm flex items-center space-x-1.5">
-              <span>💡</span>
-              <span data-i18n="truth_title">概率論洞察：彩票是負期望值 (-EV) 的娛樂消費</span>
-            </h4>
-            <p class="leading-relaxed text-slate-300" data-i18n="truth_desc1">
-              香港六合彩法定扣減為 25% 博彩稅及 15% 獎券基金與馬會佣金，只有總投注額的 <strong>54%</strong> 會注入獎券獎金基金。因此在正常情況下，六合彩的數學期望回報率約為 <strong>-46%</strong>（每投入 10 元，平均收回 5.4 元）。
-            </p>
-            <p class="leading-relaxed text-slate-300" data-i18n="truth_desc2">
-              即便金多寶頭獎累積至 1.5 億港元，頭獎期望值雖大幅拉升，但多人均分獎金的機率同樣大增。概率論告訴我們：切勿將彩票視作投資或理財工具，量力而行，理性對待。
-            </p>
-          </div>
-        </div>
-      </div>
+    <!-- 標籤切換 -->
+    <div class="flex bg-slate-200 p-1 rounded-xl">
+      <button id="tab-btn-sim" onclick="switchTab('sim')" class="flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-white shadow-sm text-slate-900">
+        🎲 虛擬模擬開獎
+      </button>
+      <button id="tab-btn-calc" onclick="switchTab('calc')" class="flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-600 hover:text-slate-900">
+        📊 概率與期望值計算
+      </button>
     </div>
 
-    <!-- ==================== TAB 2: SIMULATOR ==================== -->
-    <div id="section-simulator" class="hidden space-y-6">
-      
-      <!-- Simulator Controls Header -->
-      <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+    <!-- 模塊 1：模擬器 -->
+    <section id="section-sim" class="space-y-4">
+
+      <!-- 獎池配置 -->
+      <div class="bg-white p-3 sm:p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <span class="text-xs sm:text-sm font-medium text-slate-600" id="t-pool-label">設定當期頭獎獎池：</span>
+          <span class="text-sm font-bold text-red-600" id="pool-display">HK$ 8,000,000</span>
+        </div>
+        <div class="flex flex-wrap gap-1.5">
+          <button onclick="setPool(8000000)" class="text-xs px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 border">800萬</button>
+          <button onclick="setPool(20000000)" class="text-xs px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 border">2000萬</button>
+          <button onclick="setPool(50000000)" class="text-xs px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 border">5000萬</button>
+          <button onclick="setPool(100000000)" class="text-xs px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 border font-semibold text-red-600">1億元金多寶</button>
+        </div>
+      </div>
+
+      <!-- 開獎器卡片 -->
+      <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-4 rounded-2xl shadow-md space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm sm:text-base font-semibold flex items-center gap-1.5" id="t-draw-title">
+            <span>🔴</span> 官方攪珠開獎
+          </h2>
+          <span class="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full" id="draw-status">等待搖號</span>
+        </div>
+
+        <!-- 攪珠球展示 -->
+        <div class="flex items-center justify-center flex-wrap gap-2 py-2">
+          <div id="draw-main-balls" class="flex flex-wrap justify-center gap-2">
+            <span class="ball bg-slate-700 text-slate-400 w-10 h-10 text-sm">?</span>
+            <span class="ball bg-slate-700 text-slate-400 w-10 h-10 text-sm">?</span>
+            <span class="ball bg-slate-700 text-slate-400 w-10 h-10 text-sm">?</span>
+            <span class="ball bg-slate-700 text-slate-400 w-10 h-10 text-sm">?</span>
+            <span class="ball bg-slate-700 text-slate-400 w-10 h-10 text-sm">?</span>
+            <span class="ball bg-slate-700 text-slate-400 w-10 h-10 text-sm">?</span>
+          </div>
+          <span class="text-slate-400 font-bold px-1">+</span>
+          <div id="draw-special-ball">
+            <span class="ball bg-slate-700 text-slate-400 w-10 h-10 text-sm ring-2 ring-amber-400">?</span>
+          </div>
+        </div>
+
+        <!-- 搖號操作按鈕 -->
+        <div class="flex gap-2">
+          <button id="btn-draw" onclick="drawLottery(true)" class="flex-1 py-2.5 bg-red-600 hover:bg-red-500 active:scale-[0.98] font-bold text-sm rounded-xl transition shadow">
+            🎡 動畫開獎
+          </button>
+          <button onclick="drawLottery(false)" class="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 active:scale-[0.98] font-medium text-sm rounded-xl transition">
+            ⚡ 瞬時開獎
+          </button>
+        </div>
+      </div>
+
+      <!-- 選號與投注區 -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+        <!-- 手動選號區 -->
+        <div class="lg:col-span-7 bg-white p-3 sm:p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs sm:text-sm font-bold text-slate-900" id="t-picker-title">
+              自選投注 (49選6)
+            </h3>
+            <span class="text-xs text-slate-500" id="picker-count-hint">已選 0 / 6 個號碼</span>
+          </div>
+
+          <!-- 49 球 7x7 網格 -->
+          <div id="ball-picker-grid" class="grid grid-cols-7 gap-1.5 sm:gap-2"></div>
+
+          <!-- 手動按鈕列 -->
+          <div class="flex items-center justify-between gap-2 pt-1">
+            <button onclick="clearPickerSelection()" class="text-xs px-3 py-2 text-slate-500 hover:bg-slate-100 rounded-lg">
+              清空選擇
+            </button>
+            <button id="btn-add-manual" onclick="addManualBet()" disabled class="flex-1 max-w-[200px] text-xs sm:text-sm py-2 px-3 bg-slate-300 text-white font-semibold rounded-lg transition">
+              確認加入投注單
+            </button>
+          </div>
+
+          <!-- 快捷機選增注按鈕 -->
+          <div class="border-t pt-3">
+            <div class="text-xs text-slate-500 mb-1.5" id="t-quick-label">批量快速機選：</div>
+            <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+              <button onclick="batchQuickPick(1)" class="text-xs py-1.5 bg-slate-100 hover:bg-slate-200 rounded-md font-medium">+1注</button>
+              <button onclick="batchQuickPick(10)" class="text-xs py-1.5 bg-slate-100 hover:bg-slate-200 rounded-md font-medium">+10注</button>
+              <button onclick="batchQuickPick(100)" class="text-xs py-1.5 bg-slate-100 hover:bg-slate-200 rounded-md font-medium">+100注</button>
+              <button onclick="batchQuickPick(1000)" class="text-xs py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-md font-semibold">+1千注</button>
+              <button onclick="batchQuickPick(10000)" class="text-xs py-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded-md font-bold">+1萬注</button>
+              <button onclick="batchQuickPick(50000)" class="text-xs py-1.5 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-md font-bold">+5萬注</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 當前已投單列表 -->
+        <div class="lg:col-span-5 bg-white p-3 sm:p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
           <div>
-            <h2 class="text-base sm:text-lg font-bold text-slate-900" data-i18n="sim_panel_title">虛擬六合彩開獎模擬機</h2>
-            <p class="text-xs text-slate-500 mt-0.5" data-i18n="sim_panel_subtitle">選擇號碼、自定頭獎獎池，進行真實抽籤動畫或大批量極速模擬</p>
-          </div>
+            <div class="flex items-center justify-between pb-2 border-b">
+              <span class="text-xs sm:text-sm font-bold text-slate-900" id="t-cart-title">
+                目前投注單 (<span id="cart-total-count" class="text-red-600">0</span> 注)
+              </span>
+              <button onclick="clearAllBets()" class="text-xs text-red-500 hover:underline">清空全部</button>
+            </div>
 
-          <!-- Jackpot Pool Setting -->
-          <div class="flex items-center space-x-2">
-            <label class="text-xs font-semibold text-slate-700 whitespace-nowrap" data-i18n="sim_pool_setting">本期頭獎獎池:</label>
-            <select id="sim-jackpot-pool" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-red-600 focus:outline-none focus:ring-1 focus:ring-red-500">
-              <option value="8000000">HK$ 8,000,000 (一般基數)</option>
-              <option value="20000000">HK$ 20,000,000 (累積彩池)</option>
-              <option value="50000000" selected>HK$ 50,000,000 (金多寶)</option>
-              <option value="80000000">HK$ 80,000,000 (巨額金多寶)</option>
-              <option value="150000000">HK$ 150,000,000 (超級獎池)</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Animated Draw Machine Visual Stage -->
-        <div class="bg-slate-900 rounded-2xl p-5 sm:p-7 text-white shadow-inner flex flex-col items-center">
-          <div class="text-xs text-slate-400 font-mono tracking-widest uppercase mb-3 flex items-center space-x-2">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-            <span data-i18n="draw_stage_status">香港六合彩攪珠機 (49球)</span>
-          </div>
-
-          <!-- Ball Drop Area -->
-          <div class="w-full max-w-2xl flex flex-wrap items-center justify-center gap-3 sm:gap-4 my-2 min-h-[72px]">
-            <!-- 6 Main Drawn Balls -->
-            <div id="draw-ball-1" class="w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center font-bold text-base sm:text-lg text-slate-500 shadow transition-all">?</div>
-            <div id="draw-ball-2" class="w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center font-bold text-base sm:text-lg text-slate-500 shadow transition-all">?</div>
-            <div id="draw-ball-3" class="w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center font-bold text-base sm:text-lg text-slate-500 shadow transition-all">?</div>
-            <div id="draw-ball-4" class="w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center font-bold text-base sm:text-lg text-slate-500 shadow transition-all">?</div>
-            <div id="draw-ball-5" class="w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center font-bold text-base sm:text-lg text-slate-500 shadow transition-all">?</div>
-            <div id="draw-ball-6" class="w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center font-bold text-base sm:text-lg text-slate-500 shadow transition-all">?</div>
-            
-            <div class="text-slate-500 font-bold px-1 text-sm sm:text-base">+</div>
-
-            <!-- Special Bonus Ball -->
-            <div class="flex flex-col items-center">
-              <div id="draw-ball-special" class="w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-slate-800 border-2 border-amber-500/50 flex items-center justify-center font-bold text-base sm:text-lg text-amber-400 shadow transition-all">?</div>
-              <span class="text-[10px] text-amber-400 font-semibold mt-1" data-i18n="ball_special_tag">特別號碼</span>
+            <!-- 彩票列表顯示區域 -->
+            <div id="tickets-container" class="space-y-1.5 max-h-[300px] overflow-y-auto custom-scrollbar mt-2 pr-1">
+              <div class="text-center py-10 text-xs text-slate-400">暫無投注號碼，請在左側選號或點擊機選</div>
             </div>
           </div>
 
-          <!-- Draw Action Buttons -->
-          <div class="flex flex-wrap items-center justify-center gap-3 mt-4">
-            <button id="btn-start-draw" onclick="startAnimatedDraw()" class="px-5 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold rounded-xl shadow-lg shadow-red-600/30 text-xs sm:text-sm flex items-center space-x-2 transition disabled:opacity-50">
-              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/></svg>
-              <span data-i18n="btn_start_draw">開獎攪珠 (動畫)</span>
-            </button>
-            <button id="btn-quick-draw" onclick="instantDraw()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl border border-slate-700 text-xs sm:text-sm flex items-center space-x-1.5 transition">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-              <span data-i18n="btn_instant_draw">極速開號</span>
-            </button>
-            <button onclick="resetSimulator()" class="px-3.5 py-2.5 bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-white rounded-xl text-xs transition">
-              <span data-i18n="btn_reset">重置</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Betting & Ticket Creation Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-3">
-          
-          <!-- Ball Picker Grid (Left 7 Cols) -->
-          <div class="lg:col-span-7 space-y-4">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <h3 class="text-sm font-bold text-slate-900" data-i18n="ball_grid_title">自選手動投注 (49選6)</h3>
-                <p class="text-xs text-slate-500"><span data-i18n="ball_grid_sub">已選取</span> <span id="manual-selected-count" class="font-bold text-red-600">0</span> / 6 個號碼</p>
-              </div>
-
-              <!-- Quick Random Generator Buttons -->
-              <div class="flex flex-wrap items-center gap-1">
-                <button type="button" onclick="quickPickBets(1)" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-medium transition">+1注</button>
-                <button type="button" onclick="quickPickBets(10)" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-medium transition">+10注</button>
-                <button type="button" onclick="quickPickBets(100)" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-medium transition">+100注</button>
-                <button type="button" onclick="quickPickBets(1000)" class="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded text-xs font-semibold transition">+1千注</button>
-                <button type="button" onclick="quickPickBets(10000)" class="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 rounded text-xs font-semibold transition">+1萬注</button>
-                <button type="button" onclick="quickPickBets(50000)" class="px-2 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded text-xs font-bold transition">+5萬注</button>
-              </div>
+          <!-- 收益財務匯總 -->
+          <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs space-y-1">
+            <div class="flex justify-between">
+              <span class="text-slate-500" id="t-cost-label">總投注花費：</span>
+              <span class="font-bold text-slate-800" id="total-cost-val">HK$ 0</span>
             </div>
-
-            <!-- 1-49 Grid -->
-            <div id="balls-grid" class="grid grid-cols-7 gap-2 p-3 bg-slate-50 rounded-2xl border border-slate-200 select-none">
-              <!-- Dynamically populated 1 to 49 -->
+            <div class="flex justify-between">
+              <span class="text-slate-500" id="t-won-label">累計中獎金額：</span>
+              <span class="font-bold text-emerald-600" id="total-won-val">HK$ 0</span>
             </div>
-
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <div class="flex items-center space-x-3 text-[11px] text-slate-500">
-                <span class="flex items-center space-x-1"><span class="w-3 h-3 rounded-full ball-red inline-block"></span><span data-i18n="ball_red">紅波</span></span>
-                <span class="flex items-center space-x-1"><span class="w-3 h-3 rounded-full ball-blue inline-block"></span><span data-i18n="ball_blue">藍波</span></span>
-                <span class="flex items-center space-x-1"><span class="w-3 h-3 rounded-full ball-green inline-block"></span><span data-i18n="ball_green">綠波</span></span>
-              </div>
-              <div class="flex space-x-2">
-                <button type="button" onclick="clearManualSelection()" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg transition" data-i18n="btn_clear_selection">清空選擇</button>
-                <button type="button" id="btn-add-ticket" onclick="addManualTicket()" class="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow disabled:opacity-40 transition" disabled data-i18n="btn_add_ticket">確認加入投注單</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Active Tickets List & Stats (Right 5 Cols) -->
-          <div class="lg:col-span-5 flex flex-col space-y-4">
-            <div class="flex items-center justify-between">
-              <h3 class="text-sm font-bold text-slate-900 flex items-center space-x-2">
-                <span data-i18n="tickets_title">目前投注單</span>
-                <span id="ticket-badge-count" class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">0 注</span>
-              </h3>
-              <button type="button" onclick="clearAllTickets()" class="text-xs text-red-500 hover:text-red-700 transition" data-i18n="btn_clear_all">清空全部</button>
-            </div>
-
-            <!-- Virtual / Sample Tickets Scroll Area -->
-            <div id="tickets-container" class="flex-1 bg-slate-50 rounded-2xl border border-slate-200 p-3 max-h-[340px] min-h-[220px] overflow-y-auto space-y-2">
-              <div id="empty-ticket-hint" class="h-48 flex flex-col items-center justify-center text-slate-400 text-xs">
-                <svg class="w-8 h-8 mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                <span data-i18n="no_tickets">尚未添加任何號碼</span>
-                <span class="text-[11px] text-slate-400 mt-1" data-i18n="no_tickets_sub">點選左側 6 個號碼或點擊上方「+機選」按鈕</span>
-              </div>
-            </div>
-
-            <!-- Financial Summary Box -->
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2 text-xs">
-              <div class="flex justify-between items-center text-slate-600">
-                <span data-i18n="sim_total_cost">總投注花費:</span>
-                <span id="sim-spent" class="font-bold text-slate-900">HK$ 0</span>
-              </div>
-              <div class="flex justify-between items-center text-slate-600">
-                <span data-i18n="sim_total_won">累計中獎金額:</span>
-                <span id="sim-won" class="font-bold text-emerald-600">HK$ 0</span>
-              </div>
-              <div class="flex justify-between items-center text-slate-700 font-bold pt-2 border-t border-slate-100">
-                <span data-i18n="sim_net_profit">淨收益 (盈虧):</span>
-                <span id="sim-net" class="font-bold text-slate-900">HK$ 0</span>
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-
-        <!-- Simulation Results Breakdown Table -->
-        <div id="sim-results-section" class="pt-3 border-t border-slate-100 hidden">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-            <div>
-              <h3 class="text-sm font-bold text-slate-900" data-i18n="sim_report_title">本輪模擬開獎對獎結果</h3>
-              <p class="text-[11px] text-slate-500" data-i18n="click_tier_hint">點擊下方任意獎項卡片，可即時過濾並查看具體中獎彩票號碼</p>
-            </div>
-            <div class="flex items-center space-x-1.5 text-xs">
-              <button type="button" id="filter-btn-all" onclick="setTicketFilter('all')" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white font-medium text-slate-700 hover:bg-slate-50 transition" data-i18n="filter_all">全部彩票</button>
-              <button type="button" id="filter-btn-winners" onclick="setTicketFilter('winners')" class="px-2.5 py-1 rounded-lg border border-red-200 bg-red-50 text-red-700 font-bold hover:bg-red-100 transition flex items-center space-x-1">
-                <span>🏆</span>
-                <span data-i18n="filter_winners">僅看中獎注數</span>
-                <span id="winners-total-badge" class="ml-1 px-1.5 py-0.2 bg-red-600 text-white text-[10px] rounded-full">0</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 text-center text-xs">
-            <div id="card-tier-1" onclick="selectTierCard(1)" class="tier-card-interactive p-2.5 bg-amber-50 rounded-xl border border-amber-200">
-              <div class="text-[11px] text-amber-700 font-semibold" data-i18n="tier_1">頭獎</div>
-              <div id="res-t1" class="text-base font-bold text-amber-900 mt-0.5">0 注</div>
-            </div>
-            <div id="card-tier-2" onclick="selectTierCard(2)" class="tier-card-interactive p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-              <div class="text-[11px] text-slate-600 font-semibold" data-i18n="tier_2">二獎</div>
-              <div id="res-t2" class="text-base font-bold text-slate-800 mt-0.5">0 注</div>
-            </div>
-            <div id="card-tier-3" onclick="selectTierCard(3)" class="tier-card-interactive p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-              <div class="text-[11px] text-slate-600 font-semibold" data-i18n="tier_3">三獎</div>
-              <div id="res-t3" class="text-base font-bold text-slate-800 mt-0.5">0 注</div>
-            </div>
-            <div id="card-tier-4" onclick="selectTierCard(4)" class="tier-card-interactive p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-              <div class="text-[11px] text-slate-600 font-semibold" data-i18n="tier_4">四獎</div>
-              <div id="res-t4" class="text-base font-bold text-slate-800 mt-0.5">0 注</div>
-            </div>
-            <div id="card-tier-5" onclick="selectTierCard(5)" class="tier-card-interactive p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-              <div class="text-[11px] text-slate-600 font-semibold" data-i18n="tier_5">五獎</div>
-              <div id="res-t5" class="text-base font-bold text-slate-800 mt-0.5">0 注</div>
-            </div>
-            <div id="card-tier-6" onclick="selectTierCard(6)" class="tier-card-interactive p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-              <div class="text-[11px] text-slate-600 font-semibold" data-i18n="tier_6">六獎</div>
-              <div id="res-t6" class="text-base font-bold text-slate-800 mt-0.5">0 注</div>
-            </div>
-            <div id="card-tier-7" onclick="selectTierCard(7)" class="tier-card-interactive p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-              <div class="text-[11px] text-slate-600 font-semibold" data-i18n="tier_7">七獎</div>
-              <div id="res-t7" class="text-base font-bold text-slate-800 mt-0.5">0 注</div>
+            <div class="flex justify-between border-t pt-1 font-semibold">
+              <span class="text-slate-700" id="t-profit-label">淨收益 (盈虧)：</span>
+              <span class="font-bold text-slate-900" id="net-profit-val">HK$ 0</span>
             </div>
           </div>
         </div>
-
       </div>
 
-    </div>
+      <!-- 對獎結果反饋看板 -->
+      <div class="bg-white p-3 sm:p-4 rounded-xl border border-slate-200 shadow-sm space-y-2">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs sm:text-sm font-bold text-slate-900" id="t-result-board">本輪模擬開獎對獎結果</h3>
+          <span class="text-xs text-slate-400">點擊獎項卡片可篩選查看對應中獎彩票</span>
+        </div>
+
+        <!-- 獎項卡片網格 (自適應移動端 4 列 / 3 列) -->
+        <div class="grid grid-cols-4 sm:grid-cols-7 gap-1.5 sm:gap-2 text-center" id="tier-cards-container">
+          <div onclick="selectTierCard(1)" id="tier-card-1" class="cursor-pointer p-2 rounded-lg border border-amber-200 bg-amber-50 hover:bg-amber-100 transition">
+            <div class="text-[10px] sm:text-xs font-semibold text-amber-800">頭獎</div>
+            <div class="text-xs sm:text-sm font-bold text-slate-900 mt-0.5" id="res-tier-1">0 注</div>
+          </div>
+          <div onclick="selectTierCard(2)" id="tier-card-2" class="cursor-pointer p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition">
+            <div class="text-[10px] sm:text-xs text-slate-600">二獎</div>
+            <div class="text-xs sm:text-sm font-bold text-slate-900 mt-0.5" id="res-tier-2">0 注</div>
+          </div>
+          <div onclick="selectTierCard(3)" id="tier-card-3" class="cursor-pointer p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition">
+            <div class="text-[10px] sm:text-xs text-slate-600">三獎</div>
+            <div class="text-xs sm:text-sm font-bold text-slate-900 mt-0.5" id="res-tier-3">0 注</div>
+          </div>
+          <div onclick="selectTierCard(4)" id="tier-card-4" class="cursor-pointer p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition">
+            <div class="text-[10px] sm:text-xs text-slate-600">四獎</div>
+            <div class="text-xs sm:text-sm font-bold text-slate-900 mt-0.5" id="res-tier-4">0 注</div>
+          </div>
+          <div onclick="selectTierCard(5)" id="tier-card-5" class="cursor-pointer p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition">
+            <div class="text-[10px] sm:text-xs text-slate-600">五獎</div>
+            <div class="text-xs sm:text-sm font-bold text-slate-900 mt-0.5" id="res-tier-5">0 注</div>
+          </div>
+          <div onclick="selectTierCard(6)" id="tier-card-6" class="cursor-pointer p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition">
+            <div class="text-[10px] sm:text-xs text-slate-600">六獎</div>
+            <div class="text-xs sm:text-sm font-bold text-slate-900 mt-0.5" id="res-tier-6">0 注</div>
+          </div>
+          <div onclick="selectTierCard(7)" id="tier-card-7" class="cursor-pointer p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition col-span-2 sm:col-span-1">
+            <div class="text-[10px] sm:text-xs text-slate-600">七獎</div>
+            <div class="text-xs sm:text-sm font-bold text-slate-900 mt-0.5" id="res-tier-7">0 注</div>
+          </div>
+        </div>
+
+        <!-- 篩選器輔助條 -->
+        <div class="flex items-center justify-between text-xs pt-1 text-slate-500">
+          <span id="filter-state-label">當前顯示：全部彩票</span>
+          <button onclick="selectTierCard(null)" class="text-blue-600 hover:underline">重置顯示全部</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 模塊 2：理論計算器 -->
+    <section id="section-calc" class="hidden space-y-4">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+        <h3 class="text-sm font-bold text-slate-900" id="t-calc-title">理論期望值與概率模型測算</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-slate-600 block mb-1">計劃投注注數：</label>
+            <input type="number" id="calc-input-bets" value="10" min="1" max="10000000" class="w-full text-sm border rounded-lg p-2 focus:ring-2 focus:ring-red-400 outline-none">
+          </div>
+          <div>
+            <label class="text-xs text-slate-600 block mb-1">頭獎預估獎金 (HK$)：</label>
+            <input type="number" id="calc-input-jackpot" value="8000000" min="8000000" step="1000000" class="w-full text-sm border rounded-lg p-2 focus:ring-2 focus:ring-red-400 outline-none">
+          </div>
+        </div>
+        <button onclick="calculateTheoreticalEV()" class="w-full py-2 bg-slate-900 text-white font-semibold text-xs sm:text-sm rounded-lg hover:bg-slate-800 transition">
+          開始精確數學測算
+        </button>
+      </div>
+
+      <!-- 測算結果展示 -->
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+        <table class="w-full text-xs text-left">
+          <thead class="bg-slate-100 text-slate-600 border-b">
+            <tr>
+              <th class="p-2">獎項</th>
+              <th class="p-2">中獎條件</th>
+              <th class="p-2">單注概率</th>
+              <th class="p-2">單注獎金</th>
+              <th class="p-2">期望回報 (單注)</th>
+            </tr>
+          </thead>
+          <tbody id="calc-tbody" class="divide-y text-slate-700"></tbody>
+        </table>
+        <div id="calc-summary" class="mt-4 p-3 bg-red-50 rounded-lg text-xs space-y-1 text-slate-800"></div>
+      </div>
+    </section>
 
   </main>
 
-  <!-- Footer -->
-  <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
-    <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-400">
-      <span data-i18n="footer_text">香港六合彩概率與期望值計算器 • 僅供數學統計與學術娛樂模擬 • 珍惜生命 理性自律</span>
-    </div>
-  </footer>
-
   <script>
-    /* =========================================================
-       1. DATA DEFINITIONS & COLOR MAPPINGS
-       ========================================================= */
-    const BALL_RED = [1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46];
-    const BALL_BLUE = [3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48];
-    const BALL_GREEN = [5, 6, 11, 16, 17, 21, 22, 27, 28, 32, 33, 38, 39, 43, 44, 49];
+    // 官方顏色分配
+    const BALL_COLORS = {
+      red: [1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46],
+      blue: [3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48],
+      green: [5, 6, 11, 16, 17, 21, 22, 27, 28, 32, 33, 38, 39, 43, 44, 49]
+    };
 
     function getBallColorClass(num) {
-      if (BALL_RED.includes(num)) return 'ball-red';
-      if (BALL_BLUE.includes(num)) return 'ball-blue';
+      if (BALL_COLORS.red.includes(num)) return 'ball-red';
+      if (BALL_COLORS.blue.includes(num)) return 'ball-blue';
       return 'ball-green';
     }
 
-    // Combinatorics: C(49, 6) = 13,983,816
-    const TOTAL_COMBINATIONS = 13983816;
-
-    // Mathematical definition of each tier
-    // Format: key, name, formula combos, default payout
-    const TIERS = [
-      { key: 't1', id: 1, nameTC: '頭獎', nameSC: '头奖', condTC: '6 個正碼', condSC: '6 个正码', combos: 1, defaultPayout: 8000000 },
-      { key: 't2', id: 2, nameTC: '二獎', nameSC: '二奖', condTC: '5 個正碼 + 特別號', condSC: '5 个正码 + 特别号', combos: 6, defaultPayout: 1500000 },
-      { key: 't3', id: 3, nameTC: '三獎', nameSC: '三奖', condTC: '5 個正碼', condSC: '5 个正码', combos: 252, defaultPayout: 50000 },
-      { key: 't4', id: 4, nameTC: '四獎', nameSC: '四奖', condTC: '4 個正碼 + 特別號', condSC: '4 个正码 + 特别号', combos: 630, defaultPayout: 9600 },
-      { key: 't5', id: 5, nameTC: '五獎', nameSC: '五奖', condTC: '4 個正碼', condSC: '4 个正码', combos: 12915, defaultPayout: 640 },
-      { key: 't6', id: 6, nameTC: '六獎', nameSC: '六奖', condTC: '3 個正碼 + 特別號', condSC: '3 个正码 + 特别号', combos: 17220, defaultPayout: 320 },
-      { key: 't7', id: 7, nameTC: '七獎', nameSC: '七奖', condTC: '3 個正碼', condSC: '3 个正码', combos: 229600, defaultPayout: 40 }
-    ];
-
-    /* =========================================================
-       2. I18N LOCALIZATION DICTIONARY
-       ========================================================= */
-    let currentLang = 'tc';
-
+    // 繁體 / 簡體字典
+    let isTrad = true;
     const I18N = {
-      tc: {
-        app_title: "香港六合彩 概率期望值與模擬器",
-        tab_calculator: "概率與期望值計算",
-        tab_simulator: "虛擬開獎模擬器",
-        math_disclaimer: "六合彩總組合數為 C(49,6) = 13,983,816 種。單注中頭獎概率約為 1/1400萬。本工具運用嚴格概率論模型計算各獎項中獎率與數學期望值（EV），助您從理性統計視角認清彩票本質。",
-        params_title: "參數設定與獎池配置",
-        label_bets: "購買注數 (每注 HK$10)",
-        label_presets: "常見獎池預設 (金多寶/普通期)",
-        preset_regular: "普通期基準",
-        preset_30m: "小型金多寶",
-        preset_80m: "中秋/新春金多寶",
-        preset_150m: "超級金多寶累積",
-        prize_distribution: "各獎項預估單注派彩 (HK$)",
-        tier_1: "頭獎 (6正碼)",
-        tier_2: "二獎 (5正+1特)",
-        tier_3: "三獎 (5正碼)",
-        tier_4: "四獎 (4正+1特, 固定)",
-        tier_5: "五獎 (4正碼, 固定)",
-        tier_6: "六獎 (3正+1特, 固定)",
-        tier_7: "七獎 (3正碼, 固定)",
-        stat_total_cost: "總投注金額",
-        stat_expected_return: "預期毛回報 (EV)",
-        stat_net_ev: "預期淨虧損/收益",
-        stat_roi: "預期回報率 (ROI)",
-        prob_summary_title: "綜合中獎概率指標",
-        prob_any_prize_single: "單注任意中獎率",
-        prob_any_prize_total: "本期至少中獎一次概率",
-        prob_jackpot_total: "本期命中頭獎概率",
-        table_breakdown_title: "各獎級組合數、中獎率與期望值分解",
-        table_note: "以每注HK$10計算",
-        th_tier: "獎項",
-        th_matches: "條件",
-        th_combos: "獲獎組合數",
-        th_odds: "單注中獎概率",
-        th_prize: "派彩",
-        th_ev: "單注期望貢獻",
-        tfoot_total: "合計 (單注)",
-        truth_title: "概率論洞察：彩票是負期望值 (-EV) 的娛樂消費",
-        truth_desc1: "香港六合彩法定扣減為 25% 博彩稅及 15% 獎券基金與馬會佣金，只有總投注額的 54% 會注入獎券獎金基金。因此在正常情況下，六合彩的數學期望回報率約為 -46%（每投入 10 元，平均收回 5.4 元）。",
-        truth_desc2: "即便金多寶頭獎累積至 1.5 億港元，頭獎期望值雖大幅拉升，但多人均分獎金的機率同樣大增。概率論告訴我們：切勿將彩票視作投資或理財工具，量力而行，理性對待。",
-        sim_panel_title: "虛擬六合彩開獎模擬機",
-        sim_panel_subtitle: "選擇號碼、自定頭獎獎池，進行真實抽籤動畫或大批量極速模擬",
-        sim_pool_setting: "本期頭獎獎池:",
-        draw_stage_status: "香港六合彩攪珠機 (49球)",
-        ball_special_tag: "特別號碼",
-        btn_start_draw: "開獎攪珠 (動畫)",
-        btn_instant_draw: "極速開號",
-        btn_reset: "重置",
-        ball_grid_title: "自選手動投注 (49選6)",
-        ball_grid_sub: "已選取",
-        ball_red: "紅波",
-        ball_blue: "藍波",
-        ball_green: "綠波",
-        btn_clear_selection: "清空選擇",
-        btn_add_ticket: "確認加入投注單",
-        tickets_title: "目前投注單",
-        btn_clear_all: "清空全部",
-        no_tickets: "尚未添加任何號碼",
-        no_tickets_sub: "點選左側 6 個號碼或點擊上方「+機選」按鈕",
-        sim_total_cost: "總投注花費:",
-        sim_total_won: "累計中獎金額:",
-        sim_net_profit: "淨收益 (盈虧):",
-        sim_report_title: "本輪模擬開獎對獎結果",
-        click_tier_hint: "點擊下方任意獎項卡片，可即時過濾並查看具體中獎彩票號碼",
-        filter_all: "全部彩票",
-        filter_winners: "僅看中獎注數",
-        footer_text: "香港六合彩概率與期望值計算器 • 僅供數學統計與學術娛樂模擬 • 珍惜生命 理性自律"
+      zh_TW: {
+        title: "六合彩概率期望與模擬器",
+        poolLabel: "設定當期頭獎獎池：",
+        drawTitle: "官方攪珠開獎",
+        pickerTitle: "自選投注 (49選6)",
+        quickLabel: "批量快速機選：",
+        cartTitle: "目前投注單",
+        costLabel: "總投注花費：",
+        wonLabel: "累計中獎金額：",
+        profitLabel: "淨收益 (盈虧)：",
+        resultBoard: "本輪模擬開獎對獎結果",
+        tiers: ["頭獎", "二獎", "三獎", "四獎", "五獎", "六獎", "七獎"]
       },
-      sc: {
-        app_title: "香港六合彩 概率期望值与模拟器",
-        tab_calculator: "概率与期望值计算",
-        tab_simulator: "虚拟开奖模拟器",
-        math_disclaimer: "六合彩总组合数为 C(49,6) = 13,983,816 种。单注中头奖概率约为 1/1400万。本工具运用严格概率论模型计算各奖项中奖率与数学期望值（EV），助您从理性统计视角认清彩票本质。",
-        params_title: "参数设定与奖池配置",
-        label_bets: "购买注数 (每注 HK$10)",
-        label_presets: "常见奖池预设 (金多宝/普通期)",
-        preset_regular: "普通期基准",
-        preset_30m: "小型金多宝",
-        preset_80m: "中秋/新春金多宝",
-        preset_150m: "超级金多宝累积",
-        prize_distribution: "各奖项预估单注派彩 (HK$)",
-        tier_1: "头奖 (6正码)",
-        tier_2: "二奖 (5正+1特)",
-        tier_3: "三奖 (5正码)",
-        tier_4: "四奖 (4正+1特, 固定)",
-        tier_5: "五奖 (4正码, 固定)",
-        tier_6: "六奖 (3正+1特, 固定)",
-        tier_7: "七奖 (3正码, 固定)",
-        stat_total_cost: "总投注金额",
-        stat_expected_return: "预期毛回报 (EV)",
-        stat_net_ev: "预期净亏损/收益",
-        stat_roi: "预期回报率 (ROI)",
-        prob_summary_title: "综合中奖概率指标",
-        prob_any_prize_single: "单注任意中奖率",
-        prob_any_prize_total: "本期至少中奖一次概率",
-        prob_jackpot_total: "本期命中头奖概率",
-        table_breakdown_title: "各奖级组合数、中奖率与期望值分解",
-        table_note: "以每注HK$10计算",
-        th_tier: "奖项",
-        th_matches: "条件",
-        th_combos: "获奖组合数",
-        th_odds: "单注中奖概率",
-        th_prize: "派彩",
-        th_ev: "单注期望贡献",
-        tfoot_total: "合计 (单注)",
-        truth_title: "概率论洞察：彩票是负期望值 (-EV) 的娱乐消费",
-        truth_desc1: "香港六合彩法定扣减为 25% 博彩税及 15% 奖券基金与马会佣金，只有总投注额的 54% 会注入奖券奖金基金。因此在正常情况下，六合彩的数学期望回报率约为 -46%（每投入 10 元，平均收回 5.4 元）。",
-        truth_desc2: "即便金多宝头奖累积至 1.5 亿港元，头奖期望值虽大幅拉升，但多人均分奖金的机率同样大增。概率论告诉我们：切勿将彩票视作投资或理财工具，量力而行，理性对待。",
-        sim_panel_title: "虚拟六合彩开奖模拟机",
-        sim_panel_subtitle: "选择号码、自定头奖奖池，进行真实抽签动画或大批量极速模拟",
-        sim_pool_setting: "本期头奖奖池:",
-        draw_stage_status: "香港六合彩摇珠机 (49球)",
-        ball_special_tag: "特别号码",
-        btn_start_draw: "开奖摇珠 (动画)",
-        btn_instant_draw: "极速开号",
-        btn_reset: "重置",
-        ball_grid_title: "自选手动投注 (49选6)",
-        ball_grid_sub: "已选取",
-        ball_red: "红波",
-        ball_blue: "蓝波",
-        ball_green: "绿波",
-        btn_clear_selection: "清空选择",
-        btn_add_ticket: "确认加入投注单",
-        tickets_title: "当前投注单",
-        btn_clear_all: "清空全部",
-        no_tickets: "尚未添加任何号码",
-        no_tickets_sub: "点选左侧 6 个号码或点击上方「+机选」按钮",
-        sim_total_cost: "总投注花费:",
-        sim_total_won: "累计中奖金额:",
-        sim_net_profit: "净收益 (盈亏):",
-        sim_report_title: "本轮模拟开奖对奖结果",
-        click_tier_hint: "点击下方任意奖项卡片，可即时过滤并查看具体中奖彩票号码",
-        filter_all: "全部彩票",
-        filter_winners: "仅看中奖注数",
-        footer_text: "香港六合彩概率与期望值计算器 • 仅供数学统计与学术娱乐模拟 • 珍惜生命 理性自律"
+      zh_CN: {
+        title: "六合彩概率期望与模拟器",
+        poolLabel: "设定当期头奖奖池：",
+        drawTitle: "官方摇珠开奖",
+        pickerTitle: "自选投注 (49选6)",
+        quickLabel: "批量快速机选：",
+        cartTitle: "当前投注单",
+        costLabel: "总投注花费：",
+        wonLabel: "累计中奖金额：",
+        profitLabel: "净收益 (盈亏)：",
+        resultBoard: "本轮模拟开奖对奖结果",
+        tiers: ["头奖", "二奖", "三奖", "四奖", "五奖", "六奖", "七奖"]
       }
     };
 
-    function setLanguage(lang) {
-      currentLang = lang;
-      document.getElementById('lang-tc').className = lang === 'tc' 
-        ? "px-2.5 py-1 rounded-md transition-colors bg-white text-slate-900 shadow-sm font-semibold"
-        : "px-2.5 py-1 rounded-md transition-colors text-slate-600 hover:text-slate-900";
-      document.getElementById('lang-sc').className = lang === 'sc'
-        ? "px-2.5 py-1 rounded-md transition-colors bg-white text-slate-900 shadow-sm font-semibold"
-        : "px-2.5 py-1 rounded-md transition-colors text-slate-600 hover:text-slate-900";
+    function toggleLang() {
+      isTrad = !isTrad;
+      const t = isTrad ? I18N.zh_TW : I18N.zh_CN;
+      document.getElementById('t-title').innerText = t.title;
+      document.getElementById('t-pool-label').innerText = t.poolLabel;
+      document.getElementById('t-draw-title').children[1].innerText = " " + t.drawTitle;
+      document.getElementById('t-picker-title').innerText = t.pickerTitle;
+      document.getElementById('t-quick-label').innerText = t.quickLabel;
+      document.getElementById('t-cart-title').childNodes[0].nodeValue = t.cartTitle + " (";
+      document.getElementById('t-cost-label').innerText = t.costLabel;
+      document.getElementById('t-won-label').innerText = t.wonLabel;
+      document.getElementById('t-profit-label').innerText = t.profitLabel;
+      document.getElementById('t-result-board').innerText = t.resultBoard;
 
-      // Update text nodes
-      document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.getAttribute('data-i18n');
-        if (I18N[lang][key]) {
-          el.innerText = I18N[lang][key];
-        }
-      });
-
-      calculateEV();
+      for (let i = 1; i <= 7; i++) {
+        document.getElementById(`tier-card-${i}`).querySelector('div').innerText = t.tiers[i-1];
+      }
       renderTickets();
     }
 
-    function switchTab(tab) {
-      const calcTab = document.getElementById('tab-calculator');
-      const simTab = document.getElementById('tab-simulator');
-      const calcSec = document.getElementById('section-calculator');
-      const simSec = document.getElementById('section-simulator');
+    // 核心數據狀態
+    let currentJackpot = 8000000;
+    let selectedNumbers = new Set();
+    let tickets = []; // [{ id, numbers, mask, wonTier, wonPayout }]
+    let lastDraw = null; // { main: [], special: 0, mainMask: 0n, specialMask: 0n }
+    let tierCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 };
+    let totalWon = 0;
+    let activeFilterTier = null;
 
-      if (tab === 'calculator') {
-        calcTab.className = "py-3 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 border-red-600 text-red-600 transition-colors";
-        simTab.className = "py-3 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors";
-        calcSec.classList.remove('hidden');
-        simSec.classList.add('hidden');
-      } else {
-        simTab.className = "py-3 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 border-red-600 text-red-600 transition-colors";
-        calcTab.className = "py-3 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors";
-        simSec.classList.remove('hidden');
-        calcSec.classList.add('hidden');
-      }
-    }
-
-    /* =========================================================
-       3. PROBABILITY & EXPECTED VALUE CALCULATOR LOGIC
-       ========================================================= */
-    function setBets(n) {
-      document.getElementById('input-bets').value = n;
-      calculateEV();
-    }
-
-    function applyPreset(p1, p2, p3) {
-      document.getElementById('p-tier-1').value = p1;
-      document.getElementById('p-tier-2').value = p2;
-      document.getElementById('p-tier-3').value = p3;
-      calculateEV();
-    }
-
-    function calculateEV() {
-      const betsInput = document.getElementById('input-bets');
-      let bets = parseInt(betsInput.value) || 1;
-      if (bets < 1) bets = 1;
-
-      const costPerBet = 10;
-      const totalCost = bets * costPerBet;
-      document.getElementById('display-cost').innerText = `${currentLang === 'tc' ? '總成本' : '总成本'}: HK$ ${totalCost.toLocaleString()}`;
-
-      // Retrieve prizes
-      const prizes = [
-        parseFloat(document.getElementById('p-tier-1').value) || 0,
-        parseFloat(document.getElementById('p-tier-2').value) || 0,
-        parseFloat(document.getElementById('p-tier-3').value) || 0,
-        parseFloat(document.getElementById('p-tier-4').value) || 9600,
-        parseFloat(document.getElementById('p-tier-5').value) || 640,
-        parseFloat(document.getElementById('p-tier-6').value) || 320,
-        parseFloat(document.getElementById('p-tier-7').value) || 40
-      ];
-
-      let singleBetEV = 0;
-      let totalCombos = 0;
-      const tbody = document.getElementById('calculator-table-body');
-      tbody.innerHTML = '';
-
-      TIERS.forEach((tier, index) => {
-        const prize = prizes[index];
-        const prob = tier.combos / TOTAL_COMBINATIONS;
-        const tierEV = prob * prize;
-        singleBetEV += tierEV;
-        totalCombos += tier.combos;
-
-        const oddsStr = `1 / ${(TOTAL_COMBINATIONS / tier.combos).toFixed(1)}`;
-        const name = currentLang === 'tc' ? tier.nameTC : tier.nameSC;
-        const cond = currentLang === 'tc' ? tier.condTC : tier.condSC;
-
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-50/80 transition-colors";
-        tr.innerHTML = `
-          <td class="py-2.5 px-3 font-semibold text-slate-800">${name}</td>
-          <td class="py-2.5 px-3 text-slate-600">${cond}</td>
-          <td class="py-2.5 px-3 text-right font-mono text-slate-700">${tier.combos.toLocaleString()}</td>
-          <td class="py-2.5 px-3 text-right font-mono text-slate-700">${(prob * 100).toFixed(6)}% <span class="text-[10px] text-slate-400 block">${oddsStr}</span></td>
-          <td class="py-2.5 px-3 text-right font-mono font-medium text-slate-800">HK$ ${prize.toLocaleString()}</td>
-          <td class="py-2.5 px-3 text-right font-mono text-emerald-600 font-semibold">+HK$ ${tierEV.toFixed(4)}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      // Overall metrics
-      const totalEVGross = singleBetEV * bets;
-      const totalEVNet = totalEVGross - totalCost;
-      const roi = ((totalEVGross - totalCost) / totalCost) * 100;
-
-      // Single bet any prize prob
-      const singleAnyProb = totalCombos / TOTAL_COMBINATIONS;
-      // Prob of winning at least once across N bets: 1 - (1 - P)^N
-      const totalAnyProb = 1 - Math.pow(1 - singleAnyProb, bets);
-      // Jackpot odds across N bets
-      const totalJackpotProb = 1 - Math.pow(1 - (1 / TOTAL_COMBINATIONS), bets);
-
-      // Render summary cards
-      document.getElementById('stat-cost').innerText = `HK$ ${totalCost.toLocaleString()}`;
-      document.getElementById('stat-ev-gross').innerText = `HK$ ${totalEVGross.toFixed(2)}`;
-      
-      const netElem = document.getElementById('stat-ev-net');
-      if (totalEVNet >= 0) {
-        netElem.innerText = `+HK$ ${totalEVNet.toFixed(2)}`;
-        netElem.className = "text-base sm:text-lg font-bold text-emerald-600 mt-1";
-      } else {
-        netElem.innerText = `-HK$ ${Math.abs(totalEVNet).toFixed(2)}`;
-        netElem.className = "text-base sm:text-lg font-bold text-red-600 mt-1";
-      }
-
-      const roiElem = document.getElementById('stat-roi');
-      roiElem.innerText = `${roi > 0 ? '+' : ''}${roi.toFixed(2)}%`;
-      roiElem.className = roi >= 0 ? "text-base sm:text-lg font-bold text-emerald-600 mt-1" : "text-base sm:text-lg font-bold text-red-600 mt-1";
-
-      // Render indicators
-      document.getElementById('prob-single-any').innerText = `${(singleAnyProb * 100).toFixed(2)}%`;
-      document.getElementById('prob-total-any').innerText = `${(totalAnyProb * 100).toFixed(bets > 100 ? 2 : 4)}%`;
-      document.getElementById('prob-jackpot-total').innerText = `${(totalJackpotProb * 100).toFixed(7)}%`;
-      document.getElementById('prob-jackpot-odds').innerText = bets === 1 ? `1 / 13,983,816` : `約 1 / ${(TOTAL_COMBINATIONS / bets).toFixed(0)}`;
-
-      // Update footer in table
-      document.getElementById('tf-combos').innerText = totalCombos.toLocaleString();
-      document.getElementById('tf-prob').innerText = `${(singleAnyProb * 100).toFixed(4)}%`;
-      document.getElementById('tf-ev').innerText = `HK$ ${singleBetEV.toFixed(2)}`;
-    }
-
-    /* =========================================================
-       4. HIGH-PERFORMANCE SIMULATOR & BITMASK ENGINE
-       ========================================================= */
-    // User tickets stored as BigInt bitmasks for 100,000+ speed
-    // ticketMask: bit `i` represents number `i` (1 to 49)
-    let ticketMasks = [];
-    let ticketPreviews = []; // Only caches first 50 sample tickets for fast UI rendering
-    let manualSelected = new Set();
-    let isDrawing = false;
-    let lastDrawNumbers = null; // { main: [6], special: num }
-    let lastDrawMask = 0n;
-    let lastSpecialMask = 0n;
-    let currentTotalWon = 0; // State variable tracking winnings across draws
-
-    // Winning tickets index & filter state
-    // tierWinners[1..7] stores ticket indices for each prize tier
-    let tierWinners = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [] };
-    let allWinnerIndices = [];
-    let currentTicketFilter = 'all'; // 'all' | 'winners' | 1 | 2 | 3 | 4 | 5 | 6 | 7
-    let currentPayouts = [0, 0, 0, 0, 0, 0, 0, 0];
-
-    function initBallGrid() {
-      const grid = document.getElementById('balls-grid');
-      grid.innerHTML = '';
-      for (let i = 1; i <= 49; i++) {
-        const ball = document.createElement('button');
-        ball.type = 'button';
-        ball.id = `picker-ball-${i}`;
-        const colorClass = getBallColorClass(i);
-        ball.className = `h-10 rounded-xl ${colorClass} text-white font-bold text-sm shadow flex items-center justify-center transition cursor-pointer hover:brightness-110 active:scale-95 select-none`;
-        ball.innerText = i < 10 ? '0' + i : i;
-        ball.addEventListener('click', (e) => {
-          e.preventDefault();
-          toggleManualBall(i);
-        });
-        grid.appendChild(ball);
-      }
-    }
-
-    function toggleManualBall(num) {
-      const ballElem = document.getElementById(`picker-ball-${num}`);
-      if (!ballElem) return;
-
-      if (manualSelected.has(num)) {
-        manualSelected.delete(num);
-        ballElem.classList.remove('ball-selected');
-      } else {
-        if (manualSelected.size >= 6) {
-          return;
-        }
-        manualSelected.add(num);
-        ballElem.classList.add('ball-selected');
-      }
-      updateManualState();
-    }
-
-    function updateManualState() {
-      const count = manualSelected.size;
-      document.getElementById('manual-selected-count').innerText = count;
-      const addBtn = document.getElementById('btn-add-ticket');
-      if (count === 6) {
-        addBtn.disabled = false;
-        addBtn.classList.remove('opacity-40');
-      } else {
-        addBtn.disabled = true;
-        addBtn.classList.add('opacity-40');
-      }
-    }
-
-    function clearManualSelection() {
-      manualSelected.forEach(num => {
-        const el = document.getElementById(`picker-ball-${num}`);
-        if (el) el.classList.remove('ball-selected');
-      });
-      manualSelected.clear();
-      updateManualState();
-    }
-
-    function numbersToMask(numbers) {
-      let mask = 0n;
-      for (let i = 0; i < numbers.length; i++) {
-        mask |= (1n << BigInt(numbers[i]));
-      }
-      return mask;
-    }
-
-    function maskToNumbers(mask) {
-      const nums = [];
-      for (let i = 1; i <= 49; i++) {
-        if ((mask & (1n << BigInt(i))) !== 0n) {
-          nums.push(i);
-        }
-      }
-      return nums;
-    }
-
-    function addManualTicket() {
-      if (manualSelected.size !== 6) return;
-      const sorted = Array.from(manualSelected).sort((a, b) => a - b);
-      const mask = numbersToMask(sorted);
-      ticketMasks.push(mask);
-      if (ticketPreviews.length < 50) {
-        ticketPreviews.push(sorted);
-      }
-      clearManualSelection();
-      renderTickets();
-    }
-
-    // Fast bit-popcount for BigInt
+    // 64位 BigInt 位運算輔助
     function popcnt64(n) {
       let count = 0;
       while (n > 0n) {
-        n &= (n - 1n);
-        count++;
+        count += Number(n & 1n);
+        n >>= 1n;
       }
       return count;
     }
 
-    function generateRandomTicketMask() {
-      let mask = 0n;
-      let count = 0;
-      while (count < 6) {
-        const num = Math.floor(Math.random() * 49) + 1;
-        const bit = 1n << BigInt(num);
-        if ((mask & bit) === 0n) {
-          mask |= bit;
-          count++;
+    function numsToMask(arr) {
+      let m = 0n;
+      for (let x of arr) m |= (1n << BigInt(x));
+      return m;
+    }
+
+    // 初始化選號按鈕
+    function initPickerGrid() {
+      const grid = document.getElementById('ball-picker-grid');
+      grid.innerHTML = '';
+      for (let i = 1; i <= 49; i++) {
+        const btn = document.createElement('button');
+        btn.id = `picker-ball-${i}`;
+        const padNum = i < 10 ? `0${i}` : `${i}`;
+        btn.className = `ball ${getBallColorClass(i)} aspect-square w-full text-xs sm:text-sm font-bold`;
+        btn.innerText = padNum;
+        btn.onclick = () => togglePickerNumber(i);
+        grid.appendChild(btn);
+      }
+    }
+
+    function togglePickerNumber(num) {
+      if (selectedNumbers.has(num)) {
+        selectedNumbers.delete(num);
+      } else {
+        if (selectedNumbers.size >= 6) return;
+        selectedNumbers.add(num);
+      }
+      updatePickerUI();
+    }
+
+    function updatePickerUI() {
+      for (let i = 1; i <= 49; i++) {
+        const btn = document.getElementById(`picker-ball-${i}`);
+        if (selectedNumbers.has(i)) {
+          btn.classList.add('ball-selected');
+        } else {
+          btn.classList.remove('ball-selected');
         }
       }
-      return mask;
-    }
-
-    // High performance batch quick-pick
-    function quickPickBets(n) {
-      const batchSize = n;
-      for (let i = 0; i < batchSize; i++) {
-        const mask = generateRandomTicketMask();
-        ticketMasks.push(mask);
-        if (ticketPreviews.length < 50) {
-          ticketPreviews.push(maskToNumbers(mask));
-        }
-      }
-      renderTickets();
-    }
-
-    function clearAllTickets() {
-      ticketMasks = [];
-      ticketPreviews = [];
-      lastDrawNumbers = null;
-      lastDrawMask = 0n;
-      lastSpecialMask = 0n;
-      currentTotalWon = 0;
-      tierWinners = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [] };
-      allWinnerIndices = [];
-      currentTicketFilter = 'all';
-      resetTierCardStyles();
-      renderTickets();
-      document.getElementById('sim-results-section').classList.add('hidden');
-      updateSimFinancials(0, 0);
-    }
-
-    function removePreviewTicket(idx) {
-      ticketMasks.splice(idx, 1);
-      ticketPreviews.splice(idx, 1);
-      currentTotalWon = 0;
-      tierWinners = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [] };
-      allWinnerIndices = [];
-      renderTickets();
-    }
-
-    function setTicketFilter(filter) {
-      currentTicketFilter = filter;
-      resetTierCardStyles();
-
-      const btnAll = document.getElementById('filter-btn-all');
-      const btnWinners = document.getElementById('filter-btn-winners');
-
-      if (filter === 'all') {
-        btnAll.className = "px-2.5 py-1 rounded-lg border border-slate-900 bg-slate-900 text-white font-bold transition";
-        btnWinners.className = "px-2.5 py-1 rounded-lg border border-red-200 bg-red-50 text-red-700 font-bold hover:bg-red-100 transition flex items-center space-x-1";
-      } else if (filter === 'winners') {
-        btnAll.className = "px-2.5 py-1 rounded-lg border border-slate-300 bg-white font-medium text-slate-700 hover:bg-slate-50 transition";
-        btnWinners.className = "px-2.5 py-1 rounded-lg border border-red-600 bg-red-600 text-white font-bold transition flex items-center space-x-1 shadow";
+      document.getElementById('picker-count-hint').innerText = `已選 ${selectedNumbers.size} / 6 個號碼`;
+      const addBtn = document.getElementById('btn-add-manual');
+      if (selectedNumbers.size === 6) {
+        addBtn.disabled = false;
+        addBtn.className = "flex-1 max-w-[200px] text-xs sm:text-sm py-2 px-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg transition shadow";
       } else {
-        btnAll.className = "px-2.5 py-1 rounded-lg border border-slate-300 bg-white font-medium text-slate-700 hover:bg-slate-50 transition";
-        btnWinners.className = "px-2.5 py-1 rounded-lg border border-red-200 bg-red-50 text-red-700 font-bold hover:bg-red-100 transition flex items-center space-x-1";
-        const card = document.getElementById(`card-tier-${filter}`);
-        if (card) card.classList.add('tier-card-active');
+        addBtn.disabled = true;
+        addBtn.className = "flex-1 max-w-[200px] text-xs sm:text-sm py-2 px-3 bg-slate-300 text-white font-semibold rounded-lg transition";
       }
+    }
 
+    function clearPickerSelection() {
+      selectedNumbers.clear();
+      updatePickerUI();
+    }
+
+    function addManualBet() {
+      if (selectedNumbers.size !== 6) return;
+      const sorted = Array.from(selectedNumbers).sort((a,b) => a - b);
+      tickets.unshift({
+        id: tickets.length + 1,
+        numbers: sorted,
+        mask: numsToMask(sorted),
+        wonTier: 0,
+        wonPayout: 0
+      });
+      clearPickerSelection();
+      updateFinancials();
       renderTickets();
     }
 
-    function selectTierCard(tierNum) {
-      if (currentTicketFilter === tierNum) {
-        setTicketFilter('all');
-      } else {
-        setTicketFilter(tierNum);
+    function generateRandomNumbers() {
+      const arr = [];
+      while (arr.length < 6) {
+        const r = Math.floor(Math.random() * 49) + 1;
+        if (!arr.includes(r)) arr.push(r);
       }
+      arr.sort((a,b) => a - b);
+      return arr;
     }
 
-    function resetTierCardStyles() {
-      for (let i = 1; i <= 7; i++) {
-        const card = document.getElementById(`card-tier-${i}`);
-        if (card) card.classList.remove('tier-card-active');
+    function batchQuickPick(count) {
+      for (let i = 0; i < count; i++) {
+        const nums = generateRandomNumbers();
+        tickets.push({
+          id: tickets.length + 1,
+          numbers: nums,
+          mask: numsToMask(nums),
+          wonTier: 0,
+          wonPayout: 0
+        });
       }
+      updateFinancials();
+      renderTickets();
     }
 
+    function clearAllBets() {
+      tickets = [];
+      tierCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 };
+      totalWon = 0;
+      activeFilterTier = null;
+      updateFinancials();
+      renderTickets();
+      updateResultBoard();
+    }
+
+    function setPool(val) {
+      currentJackpot = val;
+      document.getElementById('pool-display').innerText = `HK$ ${val.toLocaleString()}`;
+    }
+
+    function updateFinancials() {
+      const cost = tickets.length * 10;
+      const net = totalWon - cost;
+      document.getElementById('cart-total-count').innerText = tickets.length.toLocaleString();
+      document.getElementById('total-cost-val').innerText = `HK$ ${cost.toLocaleString()}`;
+      document.getElementById('total-won-val').innerText = `HK$ ${totalWon.toLocaleString()}`;
+      
+      const profitEl = document.getElementById('net-profit-val');
+      profitEl.innerText = `${net >= 0 ? '+' : ''}HK$ ${net.toLocaleString()}`;
+      profitEl.className = `font-bold ${net >= 0 ? 'text-emerald-600' : 'text-red-600'}`;
+    }
+
+    // 渲染票單（虛擬截斷展示，避免大數據卡頓）
     function renderTickets() {
       const container = document.getElementById('tickets-container');
-      const badge = document.getElementById('ticket-badge-count');
-      const totalTickets = ticketMasks.length;
-      badge.innerText = `${totalTickets.toLocaleString()} ${currentLang === 'tc' ? '注' : '注'}`;
-
-      if (totalTickets === 0) {
-        container.innerHTML = `
-          <div id="empty-ticket-hint" class="h-48 flex flex-col items-center justify-center text-slate-400 text-xs">
-            <svg class="w-8 h-8 mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-            <span>${I18N[currentLang].no_tickets}</span>
-            <span class="text-[11px] text-slate-400 mt-1">${I18N[currentLang].no_tickets_sub}</span>
-          </div>
-        `;
-        updateSimFinancials(0, 0);
+      if (tickets.length === 0) {
+        container.innerHTML = `<div class="text-center py-10 text-xs text-slate-400">暫無投注號碼，請在左側選號或點擊機選</div>`;
         return;
       }
 
-      // Determine which ticket indices to show based on active filter
-      let indicesToShow = [];
-      let filterTitle = '';
-
-      if (currentTicketFilter === 'all') {
-        const count = Math.min(totalTickets, 50);
-        for (let i = 0; i < count; i++) indicesToShow.push(i);
-        filterTitle = totalTickets > 50 
-          ? (currentLang === 'tc' ? `顯示前 50 注 (共 ${totalTickets.toLocaleString()} 注)` : `显示前 50 注 (共 ${totalTickets.toLocaleString()} 注)`)
-          : '';
-      } else if (currentTicketFilter === 'winners') {
-        indicesToShow = allWinnerIndices.slice(0, 50);
-        filterTitle = currentLang === 'tc'
-          ? `🏆 中獎彩票列表 (共 ${allWinnerIndices.length.toLocaleString()} 注)`
-          : `🏆 中奖彩票列表 (共 ${allWinnerIndices.length.toLocaleString()} 注)`;
-      } else {
-        const tier = currentTicketFilter;
-        const list = tierWinners[tier] || [];
-        indicesToShow = list.slice(0, 50);
-        const tierName = currentLang === 'tc' ? TIERS[tier - 1].nameTC : TIERS[tier - 1].nameSC;
-        filterTitle = `${tierName} ${currentLang === 'tc' ? '中獎彩票' : '中奖彩票'} (${list.length.toLocaleString()} 注)`;
+      let filtered = tickets;
+      if (activeFilterTier) {
+        filtered = tickets.filter(t => t.wonTier === activeFilterTier);
       }
 
+      const limit = Math.min(filtered.length, 50);
       let html = '';
-      if (filterTitle) {
+
+      for (let i = 0; i < limit; i++) {
+        const t = filtered[i];
+        let badges = '';
+        for (let num of t.numbers) {
+          const padNum = num < 10 ? `0${num}` : num;
+          let extra = '';
+          if (lastDraw) {
+            if (lastDraw.main.includes(num)) extra = 'ball-matched-main';
+            else if (lastDraw.special === num) extra = 'ball-matched-special';
+          }
+          badges += `<span class="ball ${getBallColorClass(num)} ${extra} w-6 h-6 text-[10px]">${padNum}</span>`;
+        }
+
+        let tierTag = '';
+        if (t.wonTier > 0) {
+          const name = (isTrad ? I18N.zh_TW : I18N.zh_CN).tiers[t.wonTier - 1];
+          tierTag = `<span class="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">${name} +$${t.wonPayout.toLocaleString()}</span>`;
+        }
+
         html += `
-          <div class="px-2.5 py-1.5 bg-slate-100 rounded-xl text-slate-700 text-xs font-semibold flex items-center justify-between mb-2">
-            <span>${filterTitle}</span>
-            <button onclick="setTicketFilter('all')" class="text-[11px] text-red-600 hover:underline font-normal">${currentLang === 'tc' ? '返回全部' : '返回全部'}</button>
+          <div class="flex items-center justify-between p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+            <div class="flex items-center space-x-1">
+              <span class="text-slate-400 text-[10px] w-6">#${t.id}</span>
+              <div class="flex space-x-1">${badges}</div>
+            </div>
+            <div>${tierTag}</div>
           </div>
         `;
       }
 
-      if (indicesToShow.length === 0 && (currentTicketFilter === 'winners' || typeof currentTicketFilter === 'number')) {
-        html += `
-          <div class="h-32 flex flex-col items-center justify-center text-slate-400 text-xs">
-            <span>${currentLang === 'tc' ? '此獎項無中獎注數' : '此奖项无中奖注数'}</span>
-          </div>
-        `;
-        container.innerHTML = html;
+      if (filtered.length > limit) {
+        html += `<div class="text-center text-[10px] text-slate-400 py-1">已顯示前 50 注，剩餘 ${filtered.length - limit} 注隱藏中...</div>`;
+      }
+      container.innerHTML = html;
+    }
+
+    // 攪珠開獎
+    function drawLottery(animated = true) {
+      if (tickets.length === 0) {
+        alert("請先添加投注號碼！");
         return;
       }
 
-      // Render tickets
-      indicesToShow.forEach(idx => {
-        const mask = ticketMasks[idx];
-        const ticketNums = maskToNumbers(mask);
-
-        // Check tier for this ticket if draw happened
-        let wonTier = 0;
-        let mainMatchCount = 0;
-        let specialMatch = false;
-
-        if (lastDrawNumbers) {
-          mainMatchCount = popcnt64(mask & lastDrawMask);
-          specialMatch = (mask & lastSpecialMask) !== 0n;
-
-          if (mainMatchCount === 6) wonTier = 1;
-          else if (mainMatchCount === 5) wonTier = specialMatch ? 2 : 3;
-          else if (mainMatchCount === 4) wonTier = specialMatch ? 4 : 5;
-          else if (mainMatchCount === 3) wonTier = specialMatch ? 6 : 7;
-        }
-
-        let ballsHtml = '<div class="flex items-center space-x-1.5">';
-        ticketNums.forEach(num => {
-          const color = getBallColorClass(num);
-          const isMainMatched = lastDrawNumbers && lastDrawNumbers.main.includes(num);
-          const isSpecialMatched = lastDrawNumbers && lastDrawNumbers.special === num;
-          
-          let highlightClass = '';
-          let badgeSymbol = '';
-
-          if (isMainMatched) {
-            highlightClass = 'ball-matched-main';
-          } else if (isSpecialMatched) {
-            highlightClass = 'ball-matched-special';
-            badgeSymbol = '<span class="absolute -top-1 -right-1 text-[8px] text-amber-400 bg-slate-900 rounded-full px-0.5 leading-none">★</span>';
-          }
-
-          ballsHtml += `
-            <div class="relative inline-flex items-center justify-center">
-              <span class="w-7 h-7 rounded-full ${color} text-white flex items-center justify-center text-[11px] font-bold shadow-sm ${highlightClass}">${num < 10 ? '0' + num : num}</span>
-              ${badgeSymbol}
-            </div>
-          `;
-        });
-        ballsHtml += '</div>';
-
-        // Winning tag
-        let prizeTagHtml = '';
-        if (wonTier > 0) {
-          const tierObj = TIERS[wonTier - 1];
-          const tierName = currentLang === 'tc' ? tierObj.nameTC : tierObj.nameSC;
-          const payout = currentPayouts[wonTier] || tierObj.defaultPayout;
-          prizeTagHtml = `
-            <div class="text-right">
-              <span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">${tierName}</span>
-              <div class="text-[11px] font-bold text-emerald-600 font-mono mt-0.5">+HK$ ${Math.round(payout).toLocaleString()}</div>
-            </div>
-          `;
-        }
-
-        html += `
-          <div class="flex items-center justify-between p-2 bg-white rounded-xl border ${wonTier > 0 ? 'border-amber-300 bg-amber-50/20' : 'border-slate-200'} text-xs shadow-sm">
-            <div class="flex items-center space-x-2">
-              <span class="text-slate-400 font-mono text-[10px] w-8">#${idx + 1}</span>
-              ${ballsHtml}
-            </div>
-            <div class="flex items-center space-x-2">
-              ${prizeTagHtml}
-              ${totalTickets <= 50 ? `
-              <button type="button" onclick="removePreviewTicket(${idx})" class="text-slate-300 hover:text-red-500 p-1 transition" title="刪除">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-              </button>` : ''}
-            </div>
-          </div>
-        `;
-      });
-
-      const listTotal = (currentTicketFilter === 'all') 
-        ? totalTickets 
-        : (currentTicketFilter === 'winners' ? allWinnerIndices.length : (tierWinners[currentTicketFilter] || []).length);
-
-      if (listTotal > indicesToShow.length) {
-        html += `
-          <div class="text-center py-2 text-slate-400 text-xs">
-            ... 尚有 ${(listTotal - indicesToShow.length).toLocaleString()} 注符合條件的彩票 ...
-          </div>
-        `;
-      }
-
-      container.innerHTML = html;
-      const cost = totalTickets * 10;
-      updateSimFinancials(cost, currentTotalWon);
-    }
-
-    function updateSimFinancials(spent, won) {
-      document.getElementById('sim-spent').innerText = `HK$ ${Math.round(spent).toLocaleString()}`;
-      document.getElementById('sim-won').innerText = `HK$ ${Math.round(won).toLocaleString()}`;
-      const net = won - spent;
-      const netElem = document.getElementById('sim-net');
-      if (net > 0) {
-        netElem.innerText = `+HK$ ${Math.round(net).toLocaleString()}`;
-        netElem.className = "font-bold text-emerald-600";
-      } else if (net < 0) {
-        netElem.innerText = `-HK$ ${Math.abs(Math.round(net)).toLocaleString()}`;
-        netElem.className = "font-bold text-red-600";
-      } else {
-        netElem.innerText = `HK$ 0`;
-        netElem.className = "font-bold text-slate-800";
-      }
-    }
-
-    /* Draw Simulation Mechanism */
-    function generateDrawNumbers() {
-      const drawn = [];
-      while (drawn.length < 7) {
+      const drawAll = [];
+      while (drawAll.length < 7) {
         const r = Math.floor(Math.random() * 49) + 1;
-        if (!drawn.includes(r)) drawn.push(r);
+        if (!drawAll.includes(r)) drawAll.push(r);
       }
-      const main = drawn.slice(0, 6).sort((a, b) => a - b);
-      const special = drawn[6];
+      const main = drawAll.slice(0, 6).sort((a,b) => a - b);
+      const special = drawAll[6];
 
-      let mainMask = 0n;
-      for (let i = 0; i < 6; i++) {
-        mainMask |= (1n << BigInt(main[i]));
-      }
-      const specialMask = (1n << BigInt(special));
-
-      return {
-        main,
-        special,
-        mainMask,
-        specialMask
+      lastDraw = {
+        main: main,
+        special: special,
+        mainMask: numsToMask(main),
+        specialMask: 1n << BigInt(special)
       };
-    }
 
-    function resetDrawBallsUI() {
-      for (let i = 1; i <= 6; i++) {
-        const b = document.getElementById(`draw-ball-${i}`);
-        b.className = "w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center font-bold text-base sm:text-lg text-slate-500 shadow transition-all";
-        b.innerText = "?";
+      if (animated) {
+        document.getElementById('draw-status').innerText = "搖珠中...";
+        let count = 0;
+        const timer = setInterval(() => {
+          renderDrawBalls(generateRandomNumbers(), Math.floor(Math.random()*49)+1);
+          count++;
+          if (count > 8) {
+            clearInterval(timer);
+            finishDraw();
+          }
+        }, 80);
+      } else {
+        finishDraw();
       }
-      const sp = document.getElementById('draw-ball-special');
-      sp.className = "w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-slate-800 border-2 border-amber-500/50 flex items-center justify-center font-bold text-base sm:text-lg text-amber-400 shadow transition-all";
-      sp.innerText = "?";
     }
 
-    function setDrawBallUI(index, num, isSpecial = false) {
-      const ballElem = isSpecial 
-        ? document.getElementById('draw-ball-special')
-        : document.getElementById(`draw-ball-${index}`);
+    function renderDrawBalls(main, special) {
+      const container = document.getElementById('draw-main-balls');
+      container.innerHTML = main.map(n => {
+        const pad = n < 10 ? `0${n}` : n;
+        return `<span class="ball ${getBallColorClass(n)} w-10 h-10 text-sm">${pad}</span>`;
+      }).join('');
 
-      const color = getBallColorClass(num);
-      ballElem.className = `w-11 h-11 sm:w-13 sm:h-13 rounded-full ${color} flex items-center justify-center font-bold text-base sm:text-lg text-white shadow-lg transform scale-110 transition-all duration-300`;
-      ballElem.innerText = num < 10 ? '0' + num : num;
+      const padSp = special < 10 ? `0${special}` : special;
+      document.getElementById('draw-special-ball').innerHTML = `
+        <span class="ball ${getBallColorClass(special)} w-10 h-10 text-sm ring-2 ring-amber-400">${padSp}</span>
+      `;
     }
 
-    function startAnimatedDraw() {
-      if (isDrawing) return;
-      if (ticketMasks.length === 0) {
-        quickPickBets(5);
-      }
+    function finishDraw() {
+      renderDrawBalls(lastDraw.main, lastDraw.special);
+      document.getElementById('draw-status').innerText = "開獎完畢";
 
-      isDrawing = true;
-      document.getElementById('btn-start-draw').disabled = true;
-      document.getElementById('btn-quick-draw').disabled = true;
-      resetDrawBallsUI();
+      // 高性能 Bitwise 對獎對算
+      tierCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 };
+      totalWon = 0;
 
-      const result = generateDrawNumbers();
-      lastDrawNumbers = result;
-      lastDrawMask = result.mainMask;
-      lastSpecialMask = result.specialMask;
+      const p2 = Math.max(1500000, Math.round(currentJackpot * 0.15));
+      const p3 = Math.max(75000, Math.round(currentJackpot * 0.05));
 
-      let step = 0;
-      const interval = setInterval(() => {
-        if (step < 6) {
-          setDrawBallUI(step + 1, result.main[step], false);
-          step++;
-        } else if (step === 6) {
-          setDrawBallUI(null, result.special, true);
-          step++;
-        } else {
-          clearInterval(interval);
-          isDrawing = false;
-          document.getElementById('btn-start-draw').disabled = false;
-          document.getElementById('btn-quick-draw').disabled = false;
-          evaluateBatchResults(result);
-        }
-      }, 300);
-    }
+      for (let i = 0; i < tickets.length; i++) {
+        const t = tickets[i];
+        const matchMain = popcnt64(t.mask & lastDraw.mainMask);
+        const matchSp = (t.mask & lastDraw.specialMask) !== 0n;
 
-    function instantDraw() {
-      if (isDrawing) return;
-      if (ticketMasks.length === 0) {
-        quickPickBets(5);
-      }
+        let tier = 0;
+        let payout = 0;
 
-      resetDrawBallsUI();
-      const result = generateDrawNumbers();
-      lastDrawNumbers = result;
-      lastDrawMask = result.mainMask;
-      lastSpecialMask = result.specialMask;
+        if (matchMain === 6) { tier = 1; payout = currentJackpot; }
+        else if (matchMain === 5 && matchSp) { tier = 2; payout = p2; }
+        else if (matchMain === 5) { tier = 3; payout = p3; }
+        else if (matchMain === 4 && matchSp) { tier = 4; payout = 9600; }
+        else if (matchMain === 4) { tier = 5; payout = 640; }
+        else if (matchMain === 3 && matchSp) { tier = 6; payout = 320; }
+        else if (matchMain === 3) { tier = 7; payout = 40; }
 
-      result.main.forEach((num, idx) => {
-        setDrawBallUI(idx + 1, num, false);
-      });
-      setDrawBallUI(null, result.special, true);
+        t.wonTier = tier;
+        t.wonPayout = payout;
 
-      evaluateBatchResults(result);
-    }
-
-    // High performance bitwise lottery evaluator for 100,000+ tickets
-    function evaluateBatchResults(draw) {
-      const counts = [0, 0, 0, 0, 0, 0, 0, 0];
-      const mainMask = draw.mainMask;
-      const specialMask = draw.specialMask;
-      const len = ticketMasks.length;
-
-      // Reset tier winner lists
-      tierWinners = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [] };
-      allWinnerIndices = [];
-
-      // Ultra-fast bitwise loop & winner index collection
-      for (let i = 0; i < len; i++) {
-        const mask = ticketMasks[i];
-        const mainMatches = popcnt64(mask & mainMask);
-        const hasSpecial = (mask & specialMask) !== 0n;
-
-        let won = 0;
-        if (mainMatches === 6) {
-          won = 1;
-        } else if (mainMatches === 5) {
-          won = hasSpecial ? 2 : 3;
-        } else if (mainMatches === 4) {
-          won = hasSpecial ? 4 : 5;
-        } else if (mainMatches === 3) {
-          won = hasSpecial ? 6 : 7;
-        }
-
-        counts[won]++;
-        if (won > 0) {
-          tierWinners[won].push(i);
-          allWinnerIndices.push(i);
+        if (tier > 0) {
+          tierCounts[tier]++;
+          totalWon += payout;
         }
       }
 
-      const jackpotPool = parseFloat(document.getElementById('sim-jackpot-pool').value) || 50000000;
-      const payouts = [
-        0,
-        jackpotPool,
-        Math.max(1000000, Math.round(jackpotPool * 0.04)),
-        Math.max(50000, Math.round(jackpotPool * 0.0015)),
-        9600,
-        640,
-        320,
-        40
-      ];
-      currentPayouts = payouts;
-
-      let totalWon = 0;
-      for (let i = 1; i <= 7; i++) {
-        totalWon += counts[i] * payouts[i];
-        document.getElementById(`res-t${i}`).innerText = `${counts[i].toLocaleString()} ${currentLang === 'tc' ? '注' : '注'}`;
-      }
-
-      currentTotalWon = totalWon;
-      const totalSpent = len * 10;
-      updateSimFinancials(totalSpent, totalWon);
-
-      // Update winner badge in results header
-      document.getElementById('winners-total-badge').innerText = allWinnerIndices.length.toLocaleString();
-      document.getElementById('sim-results-section').classList.remove('hidden');
-
-      // Default to highlighting all winning tickets when draw finishes
-      currentTicketFilter = allWinnerIndices.length > 0 ? 'winners' : 'all';
-      setTicketFilter(currentTicketFilter);
-    }
-
-    function resetSimulator() {
-      resetDrawBallsUI();
-      lastDrawNumbers = null;
-      lastDrawMask = 0n;
-      lastSpecialMask = 0n;
-      currentTotalWon = 0;
-      tierWinners = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [] };
-      allWinnerIndices = [];
-      currentTicketFilter = 'all';
-      resetTierCardStyles();
+      updateFinancials();
+      updateResultBoard();
       renderTickets();
-      document.getElementById('sim-results-section').classList.add('hidden');
     }
 
-    /* Initialize on load */
+    function updateResultBoard() {
+      for (let i = 1; i <= 7; i++) {
+        document.getElementById(`res-tier-${i}`).innerText = `${tierCounts[i].toLocaleString()} 注`;
+      }
+    }
+
+    function selectTierCard(tier) {
+      activeFilterTier = tier;
+      for (let i = 1; i <= 7; i++) {
+        const el = document.getElementById(`tier-card-${i}`);
+        if (i === tier) el.classList.add('tier-card-active');
+        else el.classList.remove('tier-card-active');
+      }
+      const label = document.getElementById('filter-state-label');
+      if (tier) {
+        const name = (isTrad ? I18N.zh_TW : I18N.zh_CN).tiers[tier - 1];
+        label.innerText = `當前篩選：僅看 ${name} (${tierCounts[tier]}注)`;
+      } else {
+        label.innerText = `當前顯示：全部彩票`;
+      }
+      renderTickets();
+    }
+
+    // 切換選項卡
+    function switchTab(tab) {
+      if (tab === 'sim') {
+        document.getElementById('section-sim').classList.remove('hidden');
+        document.getElementById('section-calc').classList.add('hidden');
+        document.getElementById('tab-btn-sim').className = "flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-white shadow-sm text-slate-900";
+        document.getElementById('tab-btn-calc').className = "flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-600 hover:text-slate-900";
+      } else {
+        document.getElementById('section-sim').classList.add('hidden');
+        document.getElementById('section-calc').classList.remove('hidden');
+        document.getElementById('tab-btn-calc').className = "flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-white shadow-sm text-slate-900";
+        document.getElementById('tab-btn-sim').className = "flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-600 hover:text-slate-900";
+        calculateTheoreticalEV();
+      }
+    }
+
+    // 概率論數學期望計算器
+    function calculateTheoreticalEV() {
+      const bets = Number(document.getElementById('calc-input-bets').value) || 1;
+      const jackpot = Number(document.getElementById('calc-input-jackpot').value) || 8000000;
+      const TOTAL_COMB = 13983816;
+
+      const p2 = Math.max(1500000, Math.round(jackpot * 0.15));
+      const p3 = Math.max(75000, Math.round(jackpot * 0.05));
+
+      const tiers = [
+        { name: "頭獎", cond: "6個正碼", ways: 1, prize: jackpot },
+        { name: "二獎", cond: "5個正碼 + 特殊號碼", ways: 6, prize: p2 },
+        { name: "三獎", cond: "5個正碼", ways: 252, prize: p3 },
+        { name: "四獎", cond: "4個正碼 + 特殊號碼", ways: 630, prize: 9600 },
+        { name: "五獎", cond: "4個正碼", ways: 12915, prize: 640 },
+        { name: "六獎", cond: "3個正碼 + 特殊號碼", ways: 17220, prize: 320 },
+        { name: "七獎", cond: "3個正碼", ways: 229600, prize: 40 }
+      ];
+
+      const tbody = document.getElementById('calc-tbody');
+      tbody.innerHTML = '';
+      let singleBetEV = 0;
+
+      for (let t of tiers) {
+        const prob = t.ways / TOTAL_COMB;
+        const ev = prob * t.prize;
+        singleBetEV += ev;
+
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-50">
+            <td class="p-2 font-medium">${t.name}</td>
+            <td class="p-2 text-slate-500">${t.cond}</td>
+            <td class="p-2 font-mono">1 / ${Math.round(TOTAL_COMB / t.ways).toLocaleString()}</td>
+            <td class="p-2 font-mono">HK$ ${t.prize.toLocaleString()}</td>
+            <td class="p-2 font-mono text-emerald-700">HK$ ${ev.toFixed(4)}</td>
+          </tr>
+        `;
+      }
+
+      const totalCost = bets * 10;
+      const totalEV = singleBetEV * bets;
+      const netEV = totalEV - totalCost;
+      const roi = ((totalEV / totalCost) - 1) * 100;
+
+      document.getElementById('calc-summary').innerHTML = `
+        <div class="font-bold text-slate-900">測算結論 (${bets.toLocaleString()} 注)：</div>
+        <div>單注理論回報期望值：<span class="font-bold">HK$ ${singleBetEV.toFixed(2)}</span> (單注成本 HK$ 10)</div>
+        <div>總投注成本：<span class="font-bold">HK$ ${totalCost.toLocaleString()}</span></div>
+        <div>總期望總回報：<span class="font-bold text-emerald-700">HK$ ${totalEV.toFixed(2)}</span></div>
+        <div>預期淨收益：<span class="font-bold ${netEV >= 0 ? 'text-emerald-700' : 'text-red-600'}">HK$ ${netEV.toFixed(2)}</span></div>
+        <div>理論投資回報率 (ROI)：<span class="font-bold text-red-600">${roi.toFixed(2)}%</span></div>
+        <div class="text-[10px] text-slate-500 mt-1">註：香港賽馬會固定扣除 25% 博彩稅及 15% 獎券基金/營運成本，總返獎率約 54%，本質為負期望值博弈。</div>
+      `;
+    }
+
+    // 啟動入口
     window.addEventListener('DOMContentLoaded', () => {
-      initBallGrid();
-      calculateEV();
+      initPickerGrid();
+      updatePickerUI();
     });
   </script>
 </body>
